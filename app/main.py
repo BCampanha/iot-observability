@@ -61,6 +61,12 @@ sensor_pressao = Gauge(
     ["unidade", "linha"],
 )
 
+sensor_umidade = Gauge(
+    "techinova_umidade_bar",
+    "Umidade do ambiente em %UR",
+    ["unidade", "linha"],
+)
+
 pecas_produzidas = Counter(
     "techinova_pecas_produzidas_total",
     "Total acumulado de pecas produzidas",
@@ -105,6 +111,7 @@ def simular_chao_de_fabrica() -> None:
             "temp": random.uniform(60, 70),
             "vib": random.uniform(1.5, 3.0),
             "press": random.uniform(5.5, 6.5),
+            "umid": random.uniform(30, 50),
             "operando": True,
         }
         for linha in LINHAS
@@ -135,15 +142,18 @@ def simular_chao_de_fabrica() -> None:
             s["temp"] += random.uniform(-0.8, 1.0)
             s["vib"] += random.uniform(-0.3, 0.35)
             s["press"] += random.uniform(-0.2, 0.2)
+            s["umid"] += random.uniform(-1, 1)
 
             # Limites fisicos
             s["temp"] = min(max(s["temp"], 40), 105)
             s["vib"] = min(max(s["vib"], 0.5), 9.0)
             s["press"] = min(max(s["press"], 3.0), 8.5)
+            s["umid"] = min(max(s["umid"], 0), 100)
 
             sensor_temperatura.labels(UNIDADE, linha).set(round(s["temp"], 2))
             sensor_vibracao.labels(UNIDADE, linha).set(round(s["vib"], 2))
             sensor_pressao.labels(UNIDADE, linha).set(round(s["press"], 2))
+            sensor_umidade.labels(UNIDADE, linha).set(round(s["umid"], 2))
 
             # Producao: cada ciclo gera de 1 a 3 pecas
             qtd = random.randint(1, 3)
@@ -157,6 +167,10 @@ def simular_chao_de_fabrica() -> None:
                 falhas_total.labels(UNIDADE, linha, "vibracao_excessiva").inc()
             if s["press"] < 4:
                 falhas_total.labels(UNIDADE, linha, "baixa_pressao").inc()
+            if s["umid"] < 20:
+                falhas_total.labels(UNIDADE, linha, "baixa_umidade").inc()
+            if s["umid"] > 60:
+                falhas_total.labels(UNIDADE, linha, "alta_umidade").inc()
 
         # Intervalo entre leituras (a cada 2s, como um sensor real)
         time.sleep(2)
@@ -173,7 +187,7 @@ def status():
         "unidade": UNIDADE,
         "linhas": LINHAS,
         "status": "online",
-        "aluno": "<Coloque seu nome>",
+        "aluno": "Beatriz Campanha Silva",
         "dica": "Metricas disponiveis em /metrics",
     }
 
@@ -196,6 +210,7 @@ def leitura_atual():
                 "temperatura_celsius": sensor_temperatura.labels(UNIDADE, linha)._value.get(),
                 "vibracao_mm_s": sensor_vibracao.labels(UNIDADE, linha)._value.get(),
                 "pressao_bar": sensor_pressao.labels(UNIDADE, linha)._value.get(),
+                "umidade_ur": sensor_umidade.labels(UNIDADE, linha)._value.get(),
                 "operando": bool(maquina_status.labels(UNIDADE, linha)._value.get()),
             }
         )

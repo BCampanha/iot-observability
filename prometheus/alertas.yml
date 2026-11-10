@@ -26,6 +26,26 @@ groups:
           resumo: "Vibracao alta na {{ $labels.linha }}"
           descricao: "Vibracao de {{ $value }} mm/s - manutencao preditiva recomendada."
 
+      # Baixa umidade
+      - alert: BaixaUmidade
+        expr: umidade_ur < 20
+        for: 15s
+        labels:
+          severidade: alerta
+        annotations:
+          resumo: "Baixa umidade na {{ $labels.linha }}"
+          descricao: "Umidade de {{ $value }} %UR - limite inferior de 20 %UR."
+
+      # Alta umidade
+      - alert: AltaUmidade
+        expr: umidade_ur > 60
+        for: 15s
+        labels:
+          severidade: alerta
+        annotations:
+          resumo: "Alta umidade na {{ $labels.linha }}"
+          descricao: "Umidade de {{ $value }} %UR - limite inferior de 20 %UR."
+
       # Maquina parada por muito tempo
       - alert: MaquinaParada
         expr: techinova_maquina_operando == 0
